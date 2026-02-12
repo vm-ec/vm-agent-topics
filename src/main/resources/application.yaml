@@ -1,0 +1,25 @@
+server:
+  port: 8086
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: metrics-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+kafka:
+  topic:
+    metrics: ai-metrics
+
+ai-agent:
+  metrics:
+    source-url: http://localhost:8083/ai/metrics
+
+dashboard:
+  ingest-url: http://localhost:8082/internal/metrics
