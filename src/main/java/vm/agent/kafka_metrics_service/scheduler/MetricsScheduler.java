@@ -20,8 +20,6 @@ public class MetricsScheduler {
     @Value("${ai-agent.metrics.source-url}")
     private String metricsUrl;
 
-
-
     @Scheduled(fixedRate = 10000)
     public void pullMetrics() {
         String metrics = restTemplate.getForObject(metricsUrl, String.class);
