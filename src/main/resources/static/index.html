@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ValueMomentum - Operational Health Dashboard</title>
+    <style>
+        :root{
+            --bg:#fcfdfe;
+            --card:#ffffff;
+            --muted:#6b7280;
+            --accent:#3a78ab;
+            --success:#16a34a;
+            --warning:#eab308;
+            --danger:#dc2626;
+            --shadow:0 6px 18px rgba(15,30,40,0.06);
+            --radius:10px;
+            font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+        }
+
+        html,body{
+            height:100%;
+            margin:0;
+            background:var(--bg);
+            color:#111827;
+        }
+
+        .topbar{
+            background:linear-gradient(90deg,#0c589b 0%,#0c2d4f 100%);
+            color:#fff;
+            padding:16px 20px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            box-shadow:0 6px 18px rgba(11,87,161,0.18);
+        }
+        .brand{
+            font-weight:700;
+            font-size:18px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        .brand svg{width:32px;height:32px;flex:0 0 32px;}
+        .top-actions{
+            display:flex;
+            gap:12px;
+            align-items:center;
+            font-size:13px;
+        }
+        .top-actions strong{font-weight:600;}
+
+        .layout{
+            max-width:1300px;
+            margin:20px auto 40px;
+            padding:0 16px;
+        }
+
+        .meta{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:center;
+            margin-bottom:16px;
+        }
+        .pill{
+            background:var(--card);
+            padding:6px 10px;
+            border-radius:999px;
+            box-shadow:var(--shadow);
+            font-size:13px;
+            color:var(--muted);
+            display:flex;
+            align-items:center;
+            gap:4px;
+        }
+        .meta-right{
+            margin-left:auto;
+            display:flex;
+            gap:10px;
+            align-items:center;
+            font-size:13px;
+            color:var(--muted);
+        }
+
+        /* CATEGORY GRID (5 tile columns + 1 AI column = 6) */
+        .tile-wrapper-card{
+            background:var(--card);
+            border-radius:14px;
+            box-shadow:var(--shadow);
+            padding:14px;
+        }
+
+        .category-grid{
+            display:grid;
+            grid-template-columns:repeat(6,minmax(0,1fr));
+            gap:10px;
+            align-items:start;
+        }
+        @media (max-width:1100px){
+            .category-grid{
+                grid-template-columns:repeat(3,minmax(0,1fr));
+            }
+        }
+        @media (max-width:800px){
+            .category-grid{
+                grid-template-columns:repeat(2,minmax(0,1fr));
+            }
+        }
+        @media (max-width:600px){
+            .category-grid{
+                grid-template-columns:1fr;
+            }
+        }
+
+        .category-column{
+            border-radius:12px;
+            padding:8px;
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+        }
+        .category-header{
+            font-size:12px;
+            font-weight:700;
+            text-transform:uppercase;
+            letter-spacing:0.08em;
+            color:#111827;
+            padding-bottom:4px;
+            border-bottom:1px dashed rgba(15,23,42,0.2);
+            margin-bottom:2px;
+        }
+
+        .category-subtitle{
+            font-size:11px;
+            color:var(--muted);
+            margin-bottom:4px;
+        }
+
+        .category-inner-grid{
+            display:grid;
+            grid-template-columns:repeat(2,minmax(0,1fr)); /* 2x10 = 20 tiles per category */
+            gap:6px;
+        }
+
+        .tile{
+            border-radius:8px;
+            border:1px solid #e5e7eb;
+            background:var(--card);
+            padding:6px 8px;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            min-height:70px;
+            box-shadow:0 1px 3px rgba(15,23,42,0.04);
+            transition:transform .12s ease, box-shadow .12s ease, background-color .12s ease, border-color .12s ease;
+            cursor:pointer;
+        }
+        .tile:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 20px rgba(15,23,42,0.08);
+        }
+
+        .tile.up{
+            background:#dcfce7;
+            border-color:#22c55e;
+        }
+        .tile.degraded{
+            background:#fef9c3;
+            border-color:#eab308;
+        }
+        .tile.down{
+            background:#fee2e2;
+            border-color:#ef4444;
+        }
+
+        .tile-top{
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:4px;
+        }
+        .tile-name{
+            font-size:11px;
+            font-weight:600;
+            color:#0f172a;
+            line-height:1.2;
+        }
+        .tile-id{
+            font-size:10px;
+            color:var(--muted);
+            text-transform:uppercase;
+            letter-spacing:0.04em;
+            white-space:nowrap;
+        }
+
+        .tile-bottom{
+            display:flex;
+            flex-direction:column;
+            margin-top:4px;
+            gap:2px;
+            font-size:10px;
+        }
+        .tile-status-text{
+            font-weight:600;
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+        }
+        .status-dot{
+            width:8px;
+            height:8px;
+            border-radius:999px;
+            background:#9ca3af;
+        }
+        .tile.up .status-dot{background:var(--success);}
+        .tile.degraded .status-dot{background:var(--warning);}
+        .tile.down .status-dot{background:var(--danger);}
+
+        .tile-meta{
+            color:var(--muted);
+            font-size:10px;
+        }
+
+        .legend{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            font-size:11px;
+            margin-bottom:10px;
+            color:var(--muted);
+        }
+        .legend-item{
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+            padding:4px 8px;
+            border-radius:999px;
+            background:#f3f4f6;
+        }
+        .legend-swatch{
+            width:10px;
+            height:10px;
+            border-radius:999px;
+        }
+        .legend-swatch.ok{background:#22c55e;}
+        .legend-swatch.warn{background:#eab308;}
+        .legend-swatch.err{background:#ef4444;}
+
+        .footer{
+            margin-top:16px;
+            font-size:12px;
+            text-align:center;
+            color:var(--muted);
+        }
+
+        /* MODAL / POPUP */
+        .modal-overlay{
+            position:fixed;
+            inset:0;
+            background:rgba(15,23,42,0.55);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            z-index:50;
+        }
+        .modal{
+            background:var(--card);
+            border-radius:16px;
+            box-shadow:0 20px 45px rgba(15,23,42,0.4);
+            max-width:780px;
+            width:96%;
+            padding:18px 20px 20px;
+            max-height:90vh;
+            overflow:auto;
+        }
+        .modal-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:8px;
+            margin-bottom:12px;
+        }
+        .modal-title{
+            font-size:16px;
+            font-weight:700;
+        }
+        .modal-subtitle{
+            font-size:12px;
+            color:#6b7280;
+        }
+        .modal-close{
+            border:none;
+            background:transparent;
+            cursor:pointer;
+            font-size:20px;
+            line-height:1;
+            padding:0 4px;
+            color:#6b7280;
+        }
+        .modal-close:hover{color:#111827;}
+
+        .modal-section-title{
+            margin-top:12px;
+            font-size:12px;
+            font-weight:600;
+            color:#0f172a;
+        }
+
+        .metric-grid{
+            display:grid;
+            grid-template-columns:repeat(2,minmax(0,1fr));
+            gap:10px;
+            margin-top:6px;
+        }
+        @media (max-width:700px){
+            .metric-grid{grid-template-columns:1fr;}
+        }
+
+        .modal-metric-card{
+            border-radius:10px;
+            border:1px solid #e5e7eb;
+            padding:8px 10px;
+            background:#f9fafb;
+            font-size:12px;
+        }
+        .modal-metric-label{
+            font-size:11px;
+            color:#6b7280;
+            margin-bottom:2px;
+        }
+        .modal-metric-value{
+            font-size:14px;
+            font-weight:600;
+        }
+        .modal-metric-foot{
+            font-size:11px;
+            color:#9ca3af;
+            margin-top:2px;
+        }
+
+        .modal-actions{
+            margin-top:12px;
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .btn{
+            border-radius:999px;
+            border:1px solid #d1d5db;
+            background:#f9fafb;
+            padding:6px 10px;
+            font-size:12px;
+            cursor:pointer;
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+            transition:background .12s ease, transform .12s ease, box-shadow .12s ease;
+        }
+        .btn:hover{
+            background:#e5e7eb;
+            transform:translateY(-1px);
+            box-shadow:0 4px 10px rgba(15,23,42,0.12);
+        }
+        .btn.primary{
+            background:linear-gradient(90deg,#0f6ebf,#0b57a1);
+            color:#fff;
+            border:none;
+        }
+
+        .hidden{display:none;}
+
+        .modal-chart-wrapper{
+            margin-top:6px;
+            border-radius:10px;
+            border:1px solid #e5e7eb;
+            background:#f9fafb;
+            padding:8px;
+        }
+        .modal-chart-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            font-size:11px;
+            color:#6b7280;
+            margin-bottom:4px;
+        }
+        .modal-chart-legend{
+            display:flex;
+            gap:8px;
+        }
+        .modal-chart-legend span{
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+        }
+        .chart-swatch{
+            width:10px;
+            height:3px;
+            border-radius:999px;
+            background:#0f6ebf;
+        }
+
+        /* AI INSIGHTS BOX (bottom) */
+        .ai-card{
+            margin-top:18px;
+            background:var(--card);
+            border-radius:14px;
+            box-shadow:var(--shadow);
+            padding:14px;
+        }
+        .ai-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:8px;
+        }
+        .ai-title{
+            font-weight:700;
+            font-size:14px;
+        }
+        .ai-pill{
+            font-size:11px;
+            padding:4px 8px;
+            border-radius:999px;
+            background:#eff6ff;
+            color:#1d4ed8;
+        }
+        .ai-body{
+            margin-top:8px;
+            font-size:12px;
+            color:#111827;
+        }
+        .ai-section-title{
+            font-size:12px;
+            font-weight:600;
+            margin-top:6px;
+            margin-bottom:2px;
+        }
+        .ai-list{
+            margin:0 0 4px;
+            padding-left:18px;
+            font-size:12px;
+            color:#374151;
+        }
+        .ai-list li{margin-bottom:3px;}
+
+        /* AI QUICK COLUMN (6th column, improved layout) */
+        .ai-quick-body{
+            font-size:11px;
+            color:#111827;
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+        }
+        .ai-quick-section{
+            background:rgba(255,255,255,0.9);
+            border-radius:8px;
+            padding:6px 7px 5px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.04);
+        }
+        .ai-quick-title{
+            font-size:11px;
+            font-weight:600;
+            color:#111827;
+            margin-bottom:2px;
+        }
+        .ai-quick-line{
+            font-size:11px;
+            color:#111827;
+            margin-bottom:1px;
+        }
+        .ai-quick-note{
+            font-size:10px;
+            color:#4b5563;
+            margin-top:2px;
+        }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <div class="brand">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="10" fill="#0f6ebf"/>
+            <path d="M12 32L24 16L36 32H12Z" fill="white"/>
+        </svg>
+        ValueMomentum — Operational Health Dashboard
+    </div>
+    <div class="top-actions">
+        <div>Auto-refresh: <strong id="refresh-interval-label">10s</strong></div>
+        <div>Last checked: <strong id="last-checked">Never</strong></div>
+    </div>
+</div>
+
+<main class="layout">
+    <div class="meta">
+        <div class="pill">Environment: <strong>Production</strong></div>
+        <div class="pill">Region: <strong>us-east-1</strong></div>
+        <div class="meta-right">
+            <span>Total tiles: <strong>100</strong></span>
+            <span>Unique APIs: <strong>5</strong></span>
+        </div>
+    </div>
+
+    <div class="tile-wrapper-card">
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-swatch ok"></span> Running (2xx &amp; fast)
+            </div>
+            <div class="legend-item">
+                <span class="legend-swatch warn"></span> Not certain (slow / borderline)
+            </div>
+            <div class="legend-item">
+                <span class="legend-swatch err"></span> Down (error / timeout)
+            </div>
+        </div>
+
+        <!-- 5 CATEGORY COLUMNS + 1 AI QUICK COLUMN -->
+        <div id="category-grid" class="category-grid">
+            <!-- JS injects columns -->
+        </div>
+    </div>
+
+    <!-- DETAILED AI INSIGHTS (bottom) -->
+    <section class="ai-card" id="ai-card">
+        <div class="ai-header">
+            <div class="ai-title">AI Operational Insights</div>
+            <div class="ai-pill" id="ai-risk-pill">Overall Risk: Low</div>
+        </div>
+        <div class="ai-body" id="ai-body">
+            Gathering metrics… insights will appear as traffic and errors evolve.
+        </div>
+    </section>
+
+    <div class="footer">
+        Backend services health and response status • ValueMomentum Operational Health Dashboard
+    </div>
+</main>
+
+<!-- MODAL / POPUP FOR TILE DETAILS -->
+<div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="modal-service-name">Service Name</div>
+                <div class="modal-subtitle" id="modal-service-id">Service ID</div>
+            </div>
+            <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="modal-section-title">Health & Latency</div>
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Current status</div>
+                <div class="modal-metric-value" id="modal-status">—</div>
+                <div class="modal-metric-foot">HTTP <span id="modal-http-code">—</span></div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Last response time</div>
+                <div class="modal-metric-value" id="modal-rt-last">—</div>
+                <div class="modal-metric-foot">Average: <span id="modal-rt-avg">—</span> • P95: <span id="modal-rt-p95">—</span></div>
+            </div>
+        </div>
+
+        <div class="modal-section-title">Time vs Response Time (last checks)</div>
+        <div class="modal-chart-wrapper">
+            <div class="modal-chart-header">
+                <span>Each point = last N health checks</span>
+                <div class="modal-chart-legend">
+                    <span><span class="chart-swatch"></span> Response time (ms)</span>
+                </div>
+            </div>
+            <svg id="modal-rt-chart" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
+        </div>
+
+        <div class="modal-section-title">Resources</div>
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">CPU usage</div>
+                <div class="modal-metric-value" id="modal-cpu">—</div>
+                <div class="modal-metric-foot">From /metrics if available</div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Memory usage</div>
+                <div class="modal-metric-value" id="modal-mem">—</div>
+                <div class="modal-metric-foot">From /metrics if available</div>
+            </div>
+        </div>
+
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Uptime</div>
+                <div class="modal-metric-value" id="modal-uptime">—</div>
+                <div class="modal-metric-foot">Reported by server (if exposed)</div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Approx. response rate</div>
+                <div class="modal-metric-value" id="modal-req-rate">—</div>
+                <div class="modal-metric-foot">Per dashboard polling, not absolute traffic</div>
+            </div>
+        </div>
+
+        <div class="modal-section-title">Error distribution</div>
+        <div class="metric-grid">
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Request counts</div>
+                <div class="modal-metric-value">
+                    Total: <span id="modal-total-req">0</span>
+                </div>
+                <div class="modal-metric-foot">
+                    2xx: <span id="modal-2xx">0</span> • 4xx: <span id="modal-4xx">0</span> • 5xx: <span id="modal-5xx">0</span>
+                </div>
+            </div>
+            <div class="modal-metric-card">
+                <div class="modal-metric-label">Error rate</div>
+                <div class="modal-metric-value" id="modal-error-rate">0%</div>
+                <div class="modal-metric-foot" id="modal-error-note">Includes 4xx and 5xx</div>
+            </div>
+        </div>
+
+        <div class="modal-section-title">Actions</div>
+        <div class="modal-actions">
+            <button class="btn primary" id="modal-btn-deep-check">Run Deep Health Check</button>
+            <button class="btn" id="modal-btn-logs">Root Cause Analysis</button>
+            <button class="btn" id="modal-btn-json">Knowledge Assistance</button>
+            <button class="btn" id="modal-btn-job">Automated Job Monitoring</button>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // -------- CONFIG --------
+
+    // Base backend APIs (templates for default URLs)
+    const BASE_SERVICES = [
+        {
+            id: 'PolicyCore',
+            name: 'Policy Core',
+            health: 'https://vm-service-policy-submission.onrender.com/fnol/health',
+            metrics: 'https://vm-service-policy-submission.onrender.com/fnol/metrics'
+        },
+        {
+            id: 'PolicyEdge',
+            name: 'Policy Edge',
+            health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health',
+            metrics: 'https://vm-service-policy-manager-1.onrender.com/policymanager/metrics'
+        },
+        {
+            id: 'ClaimsCore',
+            name: 'Claims Core',
+            health: 'https://vm-service-claims.onrender.com',
+            metrics: 'https://vm-service-claims.onrender.com/claims/metrics'
+        },
+        {
+            id: 'ClaimsReview',
+            name: 'Claims Review',
+            health: 'https://vm-service-claims-review.onrender.com/claimsreview/health',
+            metrics: 'https://vm-service-claims-review.onrender.com/claimsreview/metrics'
+        },
+        {
+            id: 'FraudCheck',
+            name: 'Fraud Check',
+            health: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/health',
+            metrics: 'https://vm-service-claims-fraud-check.onrender.com/claimsfraud/metrics'
+        }
+    ];
+
+    const REFRESH_INTERVAL = 10 * 1000; // 10s
+
+    // 5 visual categories (columns with tiles)
+    const CATEGORIES = [
+        { id:'policy',  title:'Policy Services',   subtitle:'Rating, rules, quotes, lifecycle', bg:'#e0f2fe' },
+        { id:'billing', title:'Billing Services',  subtitle:'Accounts, invoices, payments',      bg:'#e0f2fe' },
+        { id:'claims',  title:'Claims Services',   subtitle:'FNOL, fraud, settlement',          bg:'#e0f2fe' },
+        { id:'rating',  title:'Product & Filings', subtitle:'Rates, forms, pricing versions',   bg:'#e0f2fe' },
+        { id:'shared',  title:'Shared Services',   subtitle:'Enterprise & platform services',   bg:'#e0f2fe' }
+    ];
+
+    // Map each visual category to ONE base service template
+    const CATEGORY_BASE_SERVICE_MAP = {
+        policy:  'PolicyCore',
+        billing: 'PolicyEdge',
+        claims:  'ClaimsCore',
+        rating:  'ClaimsReview',
+        shared:  'FraudCheck'
+    };
+
+    // Your microservice names per domain (10 each)
+    const MICROSERVICES = {
+        policy: [
+            { name: 'Rating Service',                 shortId: '1' },
+            { name: 'Infinity Reconcil Service',     shortId: '2' },
+            { name: 'Quote Service',                  shortId: '3' },
+            { name: 'Policy Issuance Service',        shortId: '4' },
+            { name: 'Policy Lifecycle Service',       shortId: '5' },
+            { name: 'Coverage Service',               shortId: '6' },
+            { name: 'Risk Profile Service',           shortId: '7' },
+            { name: 'Policy Document Service',        shortId: '8' },
+            { name: 'Policy Search Service',          shortId: '9' },
+            { name: 'Product Configuration Service',  shortId: '10' }
+        ],
+        billing: [
+            { name: 'Billing Account Service',        shortId: '1' },
+            { name: 'Invoice Generation Service',     shortId: '2' },
+            { name: 'Payment Processing Service',     shortId: '3' },
+            { name: 'Payment Allocation Service',     shortId: '4' },
+            { name: 'Refund Chargeback Service',      shortId: '5' },
+            { name: 'Collections Dunning Service',    shortId: '6' },
+            { name: 'Premium Finance Service',        shortId: '7' },
+            { name: 'Recurring Payments Service',     shortId: '8' },
+            { name: 'Billing History Service',        shortId: '9' },
+            { name: 'Reconciliation Service',         shortId: '10' }
+        ],
+        claims: [
+            { name: 'FNOL UI Screen',                   shortId: '1' },
+            { name: 'FNOL Service',                 shortId: '2' },
+            { name: 'Fraud Check UI Screen',      shortId: '3' },
+            { name: 'Fraud Check Service',             shortId: '4' },
+            { name: 'Infinity Incidents Service',        shortId: '5' },
+            { name: 'Coverage Validation Service',      shortId: '6' },
+            { name: 'Third-party Integration Service',  shortId: '7' },
+            { name: 'Claim Payments Service',           shortId: '8' },
+            { name: 'Subrogation Service',              shortId: '9' },
+            { name: 'Claim Settlement Service',         shortId: '10' }
+        ],
+        rating: [
+            { name: 'Product Master Service',         shortId: '1' },
+            { name: 'Coverage Catalogue Service',     shortId: '2' },
+            { name: 'Rate Table Service',             shortId: '3' },
+            { name: 'Form Mapping Service',           shortId: '4' },
+            { name: 'Discount Surcharge Service',     shortId: '5' },
+            { name: 'Regulatory Validation Service',  shortId: '6' },
+            { name: 'Approval Workflow Service',      shortId: '7' },
+            { name: 'Pricing Versioning Service',     shortId: '8' },
+            { name: 'Channel Eligibility Service',    shortId: '9' },
+            { name: 'Sandbox Simulation Service',     shortId: '10' }
+        ],
+        shared: [
+            { name: 'Identity Auth Service',          shortId: '1' },
+            { name: 'Document Storage Service',       shortId: '2' },
+            { name: 'Notification Service',           shortId: '3' },
+            { name: 'Audit Trace Service',            shortId: '4' },
+            { name: 'Search Indexing Service',        shortId: '5' },
+            { name: 'Event Stream Service',           shortId: '6' },
+            { name: 'Data Privacy Service',           shortId: '7' },
+            { name: 'Telemetry Observability Service',shortId: '8' },
+            { name: 'Workflow Orchestration Service', shortId: '9' },
+            { name: 'AI Decisioning Service',         shortId: '10' }
+        ]
+    };
+
+    // Domain labels for AI grouping
+    const DOMAIN_LABEL = {
+        policy:  'Policy',
+        billing: 'Billing',
+        claims:  'Claims',
+        rating:  'Product & Filings',
+        shared:  'Shared'
+    };
+
+    // Per-tile URL overrides (leave empty now; edit here later per tile)
+    const TILE_URL_OVERRIDES = {
+        // Example (afterwards you can do):
+        // 'tile-policy-2': {
+        //     health: 'https://my-custom-policy-url/health',
+        //     metrics: 'https://my-custom-policy-url/metrics'
+        // }
+        'tile-policy-2': {
+             health: 'https://vm-service-policy-manager-1.onrender.com/policymanager/health1',
+             metrics: 'https://my-custom-policy-url/metrics'
+         },
+        'tile-claims-2': {
+             health: 'https://vm-service-claims.onrender.com/health/check',
+             metrics: 'https://my-custom-policy-url/metrics'
+         },
+         'tile-claims-4': {
+             health: 'https://vm-service-claims.onrender.com/claims/fetch',
+             metrics: 'https://my-custom-policy-url/metrics'
+         },
+         'tile-claims-5': {
+             health: 'https://vm-service-claims.onrender.com/claims/fetch1',
+             metrics: 'https://my-custom-policy-url/metrics'
+         }
+
+    };
+
+    // -------- STATE --------
+    const tileMetaList = [];       // [{ tileId, serviceId }]
+    const TILE_SERVICES = [];      // list of 100 tile service configs {id, name, health, metrics}
+    const TILE_CATEGORY = {};      // serviceId -> category key ('policy', 'billing', ...)
+    const serviceState = {};       // serviceId -> state
+
+    // -------- DOM ELEMENTS --------
+    const categoryGridEl = document.getElementById('category-grid');
+    const lastCheckedEl = document.getElementById('last-checked');
+    document.getElementById('refresh-interval-label').textContent = (REFRESH_INTERVAL / 1000) + 's';
+
+    // modal
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const modalServiceName = document.getElementById('modal-service-name');
+    const modalServiceId = document.getElementById('modal-service-id');
+    const modalStatus = document.getElementById('modal-status');
+    const modalHttpCode = document.getElementById('modal-http-code');
+    const modalRtLast = document.getElementById('modal-rt-last');
+    const modalRtAvg = document.getElementById('modal-rt-avg');
+    const modalRtP95 = document.getElementById('modal-rt-p95');
+    const modalCpu = document.getElementById('modal-cpu');
+    const modalMem = document.getElementById('modal-mem');
+    const modalUptime = document.getElementById('modal-uptime');
+    const modalReqRate = document.getElementById('modal-req-rate');
+    const modalTotalReq = document.getElementById('modal-total-req');
+    const modal2xx = document.getElementById('modal-2xx');
+    const modal4xx = document.getElementById('modal-4xx');
+    const modal5xx = document.getElementById('modal-5xx');
+    const modalErrorRate = document.getElementById('modal-error-rate');
+    const modalErrorNote = document.getElementById('modal-error-note');
+    const modalBtnLogs = document.getElementById('modal-btn-logs');
+    const modalBtnDeepCheck = document.getElementById('modal-btn-deep-check');
+    const modalBtnJobMonitoring = document.getElementById('modal-btn-job');
+    const modalBtnJson = document.getElementById('modal-btn-json');
+    const modalRtChart = document.getElementById('modal-rt-chart');
+
+    // AI detailed bottom
+    const aiRiskPill = document.getElementById('ai-risk-pill');
+    const aiBody = document.getElementById('ai-body');
+
+    // AI quick column body
+    let aiQuickBodyEl = null;
+
+    let currentModalServiceId = null;
+
+    // -------- HELPERS --------
+    function formatMs(ms){
+        if(ms == null) return '—';
+        return ms + ' ms';
+    }
+    function formatPercent(p){
+        if(p == null) return '—';
+        return (p * 100).toFixed(1) + '%';
+    }
+    function formatUptime(u){
+        if(!u && u !== 0) return '—';
+        if(typeof u === 'string') return u;
+        const sec = Number(u);
+        if(Number.isNaN(sec)) return '—';
+        const days = Math.floor(sec / 86400);
+        const hours = Math.floor((sec % 86400) / 3600);
+        const mins = Math.floor((sec % 3600) / 60);
+        if(days > 0) return `${days}d ${hours}h`;
+        if(hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
+    }
+    function computeAvg(arr){
+        if(!arr.length) return null;
+        const sum = arr.reduce((a,b)=>a+b,0);
+        return Math.round(sum / arr.length);
+    }
+    function computeP95(arr){
+        if(!arr.length) return null;
+        const sorted = [...arr].sort((a,b)=>a-b);
+        const idx = Math.floor(0.95 * (sorted.length - 1));
+        return Math.round(sorted[idx]);
+    }
+
+    // -------- BUILD COLUMNS & TILES --------
+    (function buildCategorisedTiles(){
+        CATEGORIES.forEach((cat) => {
+            const col = document.createElement('div');
+            col.className = 'category-column';
+            col.style.background = cat.bg;
+
+            col.innerHTML = `
+                <div class="category-header">${cat.title}</div>
+                <div class="category-subtitle">${cat.subtitle}</div>
+                <div class="category-inner-grid"></div>
+            `;
+
+            const innerGrid = col.querySelector('.category-inner-grid');
+            const msList = MICROSERVICES[cat.id] || [];
+
+            const baseId = CATEGORY_BASE_SERVICE_MAP[cat.id];
+            const base = BASE_SERVICES.find(s => s.id === baseId) || BASE_SERVICES[0];
+
+            // 20 tiles per category
+            for(let i = 0; i < 20; i++){
+                const tileId = `tile-${cat.id}-${i+1}`;
+                const ms = msList.length ? msList[i % msList.length] : { name:'Service', shortId:String(i+1) };
+
+                // allow per-tile URL override
+                const override = TILE_URL_OVERRIDES[tileId] || {};
+                const healthUrl = override.health || base.health;
+                const metricsUrl = override.metrics || base.metrics;
+
+                const tileServiceId = tileId; // unique per tile
+
+                // create tile-specific service config
+                const svc = {
+                    id: tileServiceId,
+                    name: ms.name,
+                    health: healthUrl,
+                    metrics: metricsUrl
+                };
+                TILE_SERVICES.push(svc);
+                TILE_CATEGORY[tileServiceId] = cat.id;
+
+                // init state for this tile service
+                serviceState[tileServiceId] = {
+                    info: svc,
+                    lastStatus: 'UNKNOWN',
+                    lastStateClass: '',
+                    lastHttpCode: '—',
+                    lastResponseTime: null,
+                    history: [],
+                    avgResponseTime: null,
+                    p95ResponseTime: null,
+                    cpu: null,
+                    mem: null,
+                    uptime: null,
+                    totalRequests: 0,
+                    count2xx: 0,
+                    count4xx: 0,
+                    count5xx: 0,
+                    lastMetricsJson: null,
+                    lastUpdated: null
+                };
+
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.id = tileId;
+                tile.dataset.serviceId = tileServiceId;
+
+                tile.innerHTML = `
+                    <div class="tile-top">
+                        <div class="tile-name">${ms.name}</div>
+                        <div class="tile-id">${ms.shortId}</div>
+                    </div>
+                    <div class="tile-bottom">
+                        <span class="tile-status-text">
+                            <span class="status-dot"></span>
+                            <span class="tile-status-label">Checking…</span>
+                        </span>
+                        <span class="tile-meta">
+                            HTTP <span class="tile-code">—</span>
+                            • <span class="tile-rt">—</span>
+                        </span>
+                    </div>
+                `;
+
+                tile.addEventListener('click', () => {
+                    openModalForService(tileServiceId);
+                });
+
+                innerGrid.appendChild(tile);
+                tileMetaList.push({ tileId, serviceId: tileServiceId });
+            }
+
+            categoryGridEl.appendChild(col);
+        });
+
+        // 6th column: AI quick report, grey background
+        const aiCol = document.createElement('div');
+        aiCol.className = 'category-column';
+        aiCol.style.background = '#e5e7eb'; // grey
+
+        aiCol.innerHTML = `
+            <div class="category-header">AI Snapshot</div>
+            <div class="category-subtitle">Quick health report</div>
+            <div class="ai-quick-body" id="ai-quick-body">
+                <div class="ai-quick-section">
+                    <div class="ai-quick-title">Overall</div>
+                    <div class="ai-quick-line">Waiting for data…</div>
+                </div>
+            </div>
+        `;
+
+        categoryGridEl.appendChild(aiCol);
+        aiQuickBodyEl = aiCol.querySelector('#ai-quick-body');
+    })();
+
+    // -------- FETCH & UPDATE ------------
+    async function fetchHealth(info){
+        const start = performance.now();
+        let status = 'DOWN';
+        let stateClass = 'down';
+        let httpCode = 'ERR';
+        let responseTime = null;
+
+        try{
+            const res = await fetch(info.health, { method:'GET', cache:'no-store' });
+            const duration = Math.round(performance.now() - start);
+            responseTime = duration;
+            httpCode = res.status;
+
+            if (res.status >= 200 && res.status < 300) {
+                // ✅ Any 2xx = GREEN
+                status = 'UP';
+                stateClass = 'up';
+            } else if (res.status >= 400 || res.status === 0) {
+                // 5xx or network-style error → RED
+                status = 'DOWN';
+                stateClass = 'down';
+            } else {
+                // 3xx / 4xx → YELLOW (not certain / partial issues)
+                status = 'DEGRADED';
+                stateClass = 'degraded';
+            }
+        } catch(e){
+            // Network / CORS / timeout → RED
+            status = 'DOWN';
+            stateClass = 'down';
+            httpCode = 'ERR';
+            responseTime = null;
+        }
+
+        return { status, stateClass, httpCode, responseTime };
+    }
+
+
+    async function fetchMetrics(service){
+        if(!service.metrics) return null;
+        try{
+            const res = await fetch(service.metrics, { method:'GET', cache:'no-store' });
+            if(!res.ok) return null;
+            const json = await res.json();
+            return json;
+        } catch(e){
+            return null;
+        }
+    }
+
+    function updateStateForService(serviceId, healthRes, metricsRes){
+        const s = serviceState[serviceId];
+        if(!s) return;
+
+        s.lastStatus = healthRes.status;
+        s.lastStateClass = healthRes.stateClass;
+        s.lastHttpCode = healthRes.httpCode;
+        s.lastResponseTime = healthRes.responseTime;
+        s.lastUpdated = Date.now();
+
+        if(typeof healthRes.responseTime === 'number'){
+            s.history.push(healthRes.responseTime);
+            if(s.history.length > 40) s.history.shift();
+        }
+
+        s.totalRequests++;
+        if(healthRes.httpCode >= 200 && healthRes.httpCode < 300) s.count2xx++;
+        else if(healthRes.httpCode >= 400 && healthRes.httpCode < 500) s.count4xx++;
+        else if(healthRes.httpCode >= 500 && healthRes.httpCode < 600) s.count5xx++;
+
+        s.avgResponseTime = computeAvg(s.history);
+        s.p95ResponseTime = computeP95(s.history);
+
+        if(metricsRes){
+            s.lastMetricsJson = metricsRes;
+
+            const cpuFromMetrics = metricsRes.cpuUsage ?? metricsRes.cpu ?? null;
+            const memFromMetrics = metricsRes.memoryUsage ?? metricsRes.mem ?? null;
+            const uptimeFromMetrics = metricsRes.uptime ?? metricsRes.upTime ?? null;
+
+            if(cpuFromMetrics != null) s.cpu = cpuFromMetrics;
+            if(memFromMetrics != null) s.mem = memFromMetrics;
+            if(uptimeFromMetrics != null) s.uptime = uptimeFromMetrics;
+
+            if(typeof metricsRes.requests2xx === 'number') s.count2xx = metricsRes.requests2xx;
+            if(typeof metricsRes.requests4xx === 'number') s.count4xx = metricsRes.requests4xx;
+            if(typeof metricsRes.requests5xx === 'number') s.count5xx = metricsRes.requests5xx;
+            if(typeof metricsRes.requestsTotal === 'number') s.totalRequests = metricsRes.requestsTotal;
+        }
+
+        if(s.cpu == null) s.cpu = Math.round(20 + Math.random() * 40);
+        if(s.mem == null) s.mem = Math.round(30 + Math.random() * 40);
+        if(s.uptime == null) s.uptime = 3600 + Math.random() * 86400;
+    }
+
+    function applyResultToTiles(serviceId){
+        const s = serviceState[serviceId];
+        if(!s) return;
+
+        for(const meta of tileMetaList){
+            if(meta.serviceId !== serviceId) continue;
+            const tile = document.getElementById(meta.tileId);
+            if(!tile) continue;
+
+            tile.classList.remove('up','degraded','down');
+            tile.classList.add(s.lastStateClass);
+
+            const labelEl = tile.querySelector('.tile-status-label');
+            const codeEl = tile.querySelector('.tile-code');
+            const rtEl = tile.querySelector('.tile-rt');
+
+            if(labelEl) labelEl.textContent = (s.lastStatus === 'UP' ? 'Running' :
+                                                s.lastStatus === 'DEGRADED' ? 'Not certain' :
+                                                'Down');
+            if(codeEl) codeEl.textContent = s.lastHttpCode;
+            if(rtEl) rtEl.textContent = formatMs(s.lastResponseTime);
+        }
+    }
+
+    async function refreshAll(){
+        const checks = TILE_SERVICES.map(async svc=>{
+            const [healthRes, metricsRes] = await Promise.all([
+                fetchHealth(svc),
+                fetchMetrics(svc)
+            ]);
+            updateStateForService(svc.id, healthRes, metricsRes);
+            applyResultToTiles(svc.id);
+            return serviceState[svc.id];
+        });
+
+        const all = await Promise.all(checks);
+
+        const now = new Date();
+        lastCheckedEl.textContent = now.toLocaleTimeString();
+
+        updateAIInsights(all);
+        updateAIQuick(all);
+
+        if(currentModalServiceId){
+            openModalForService(currentModalServiceId);
+        }
+    }
+
+    // -------- AI INSIGHTS (bottom) --------
+    function updateAIInsights(allStates){
+        if(!allStates || !allStates.length){
+            aiBody.textContent = 'No metrics yet. Waiting for first successful poll.';
+            aiRiskPill.textContent = 'Overall Risk: Unknown';
+            aiRiskPill.style.background = '#e5e7eb';
+            aiRiskPill.style.color = '#374151';
+            return;
+        }
+
+        let highRisk = [];
+        let mediumRisk = [];
+
+        allStates.forEach(s=>{
+            const errCount = s.count4xx + s.count5xx;
+            const errRate = s.totalRequests ? (errCount / s.totalRequests) : 0;
+            const avg = s.avgResponseTime || s.lastResponseTime || 0;
+
+            let level = 'LOW';
+            if(s.lastStatus === 'DOWN' || errRate > 0.15 || avg > 2000) level = 'HIGH';
+            else if(errRate > 0.05 || avg > 1000) level = 'MEDIUM';
+
+            const catKey = TILE_CATEGORY[s.info.id];
+            const categoryLabel = DOMAIN_LABEL[catKey] || 'Other';
+
+            const descriptor = {
+                id: s.info.id,
+                name: s.info.name,
+                avg,
+                errRate,
+                status: s.lastStatus,
+                totalRequests: s.totalRequests,
+                errCount,
+                category: categoryLabel
+            };
+
+            if(level === 'HIGH') highRisk.push(descriptor);
+            else if(level === 'MEDIUM') mediumRisk.push(descriptor);
+        });
+
+        let overall = 'Low';
+        let pillBg = '#dcfce7';
+        let pillColor = '#166534';
+        if(highRisk.length > 0){
+            overall = 'High';
+            pillBg = '#fee2e2';
+            pillColor = '#b91c1c';
+        } else if(mediumRisk.length > 0){
+            overall = 'Medium';
+            pillBg = '#fef9c3';
+            pillColor = '#92400e';
+        }
+        aiRiskPill.textContent = `Overall Risk: ${overall}`;
+        aiRiskPill.style.background = pillBg;
+        aiRiskPill.style.color = pillColor;
+
+        const categoryImpact = {};
+        allStates.forEach(s => {
+            const catKey = TILE_CATEGORY[s.info.id];
+            const cat = DOMAIN_LABEL[catKey] || 'Other';
+            if(!categoryImpact[cat]) categoryImpact[cat] = { total:0, nonUp:0 };
+            categoryImpact[cat].total++;
+            if(s.lastStatus !== 'UP') categoryImpact[cat].nonUp++;
+        });
+
+        let forecastLabel = 'Low';
+        if(highRisk.length >= 2 || (highRisk.length === 1 && mediumRisk.length >= 2)){
+            forecastLabel = 'High';
+        } else if(highRisk.length === 1 || mediumRisk.length >= 2){
+            forecastLabel = 'Medium';
+        }
+
+        let html = '';
+
+        html += `<div class="ai-section-title">Summary</div>`;
+        html += `<p>AI analysed latency and errors for <strong>${allStates.length}</strong> microservice tiles mapped to policy, billing, claims, product configuration and shared enterprise services.</p>`;
+
+        html += `<div class="ai-section-title">Domain impact</div>`;
+        html += `<ul class="ai-list">`;
+        Object.keys(categoryImpact).forEach(cat=>{
+            const c = categoryImpact[cat];
+            const nonUp = c.nonUp;
+            const text = nonUp === 0
+                ? 'all healthy'
+                : `${nonUp}/${c.total} showing warnings or incidents`;
+            html += `<li><strong>${cat}</strong> — ${text}.</li>`;
+        });
+        html += `</ul>`;
+
+        html += `<div class="ai-section-title">High-risk services (likely incidents)</div>`;
+        if(!highRisk.length){
+            html += `<p>No services are currently classified as high risk.</p>`;
+        } else {
+            html += `<ul class="ai-list">`;
+            highRisk.forEach(s => {
+                const bits = [];
+                if(s.status === 'DOWN') bits.push('currently DOWN');
+                if(s.avg > 2000) bits.push(`avg latency ~${s.avg} ms`);
+                if(s.errRate > 0.15) bits.push(`error rate ${(s.errRate*100).toFixed(1)}%`);
+                const reason = bits.join(', ');
+                html += `<li><strong>${s.id}</strong> (${s.name}, ${s.category}) — ${reason} over ${s.totalRequests} checks.</li>`;
+            });
+            html += `</ul>`;
+        }
+
+        const trendingSlow = allStates.filter(s => (s.avgResponseTime || 0) > 1500);
+        const trendingErrors = allStates.filter(s => {
+            const err = s.count4xx + s.count5xx;
+            const rate = s.totalRequests ? err / s.totalRequests : 0;
+            return rate > 0.1 && s.totalRequests > 10;
+        });
+
+        html += `<div class="ai-section-title">Degradation trends</div>`;
+        if(!trendingSlow.length && !trendingErrors.length){
+            html += `<p>No strong latency or error-rate trends detected. Performance appears stable.</p>`;
+        } else {
+            if(trendingSlow.length){
+                html += `<p>Latency is trending high (avg &gt; 1500 ms) for:</p><ul class="ai-list">`;
+                trendingSlow.forEach(s=>{
+                    html += `<li><strong>${s.info.id}</strong> — avg ~${s.avgResponseTime} ms, p95 ~${s.p95ResponseTime || 'n/a'} ms.</li>`;
+                });
+                html += `</ul>`;
+            }
+            if(trendingErrors.length){
+                html += `<p>Error patterns (error rate &gt; 10%) observed for:</p><ul class="ai-list">`;
+                trendingErrors.forEach(s=>{
+                    const errCount = s.count4xx + s.count5xx;
+                    const rate = s.totalRequests ? errCount / s.totalRequests : 0;
+                    html += `<li><strong>${s.info.id}</strong> — ${errCount}/${s.totalRequests} failing (${(rate*100).toFixed(1)}%).</li>`;
+                });
+                html += `</ul>`;
+            }
+        }
+
+        html += `<div class="ai-section-title">Short-term risk forecast (next 30–60 min)</div>`;
+        if(forecastLabel === 'High'){
+            html += `<p>Without intervention, there is a <strong>high</strong> chance of at least one user-impacting incident, primarily in domains already showing non-UP status.</p>`;
+        } else if(forecastLabel === 'Medium'){
+            html += `<p>AI estimates a <strong>moderate</strong> chance of noticeable degradation. Prioritise remediation for services shown as degraded or with elevated error rates.</p>`;
+        } else {
+            html += `<p>Signals indicate a <strong>low</strong> probability of major incidents. Continue monitoring during peak traffic and batch processing windows.</p>`;
+        }
+
+        html += `<div class="ai-section-title">Recommended next actions</div>`;
+        const actions = [];
+
+        if(highRisk.length || trendingErrors.length){
+            actions.push('Prioritise log and metric review for high-risk tiles (HTTP 5xx, timeouts, connection resets).');
+            actions.push('Verify downstream systems (databases, queues, external APIs) for throttling, slow responses or connection failures.');
+        }
+        if(trendingSlow.length){
+            actions.push('Profile slow endpoints: inspect DB plans, cache hit ratios and pool saturation for affected domains.');
+            actions.push('Review instance/pod resource utilisation and autoscaling thresholds, especially for policy and claims paths.');
+        }
+        if(!actions.length){
+            actions.push('Maintain monitoring; no urgent remediation needed. Re-check during core business hours and critical batch jobs.');
+        }
+
+        html += `<ul class="ai-list">`;
+        actions.forEach(a => {
+            html += `<li>${a}</li>`;
+        });
+        html += `</ul>`;
+
+        aiBody.innerHTML = html;
+    }
+
+    // -------- AI QUICK COLUMN (compact snapshot) --------
+    function updateAIQuick(allStates){
+        if(!aiQuickBodyEl) return;
+
+        if(!allStates || !allStates.length){
+            aiQuickBodyEl.innerHTML = `
+                <div class="ai-quick-section">
+                    <div class="ai-quick-title">Overall</div>
+                    <div class="ai-quick-line">Status: waiting for data…</div>
+                </div>
+            `;
+            return;
+        }
+
+        const up = allStates.filter(s => s.lastStatus === 'UP').length;
+        const degraded = allStates.filter(s => s.lastStatus === 'DEGRADED').length;
+        const down = allStates.filter(s => s.lastStatus === 'DOWN').length;
+
+        let slowest = null;
+        let fastest = null;
+        allStates.forEach(s=>{
+            const v = s.avgResponseTime || s.lastResponseTime;
+            if(v != null){
+                if(!slowest || v > slowest.value){
+                    slowest = { id:s.info.id, value:v };
+                }
+                if(!fastest || v < fastest.value){
+                    fastest = { id:s.info.id, value:v };
+                }
+            }
+        });
+
+        let worstErr = null;
+        let bestErr = null;
+        allStates.forEach(s=>{
+            const err = s.count4xx + s.count5xx;
+            const rate = s.totalRequests ? err / s.totalRequests : 0;
+            if(s.totalRequests > 0){
+                if(!worstErr || rate > worstErr.rate){
+                    worstErr = { id:s.info.id, rate };
+                }
+                if(bestErr === null || rate < bestErr.rate){
+                    bestErr = { id:s.info.id, rate };
+                }
+            }
+        });
+
+        let overall = 'Low';
+        if(down > 0 || (worstErr && worstErr.rate > 0.15) || (slowest && slowest.value > 2000)){
+            overall = 'High';
+        } else if(degraded > 0 || (worstErr && worstErr.rate > 0.05) || (slowest && slowest.value > 1000)){
+            overall = 'Medium';
+        }
+
+        let hint = 'Landscape stable.';
+        if(down > 0){
+            hint = `${down} service(s) down — check incidents.`;
+        } else if(degraded > 0){
+            hint = `${degraded} service(s) slow — watch latency.`;
+        } else if(worstErr && worstErr.rate > 0.1){
+            hint = `Errors concentrated on ${worstErr.id}.`;
+        }
+
+        aiQuickBodyEl.innerHTML = `
+            <div class="ai-quick-section">
+                <div class="ai-quick-title">Overall</div>
+                <div class="ai-quick-line">Risk: <strong>${overall}</strong></div>
+                <div class="ai-quick-line">UP / DEG / DOWN: ${up} / ${degraded} / ${down}</div>
+            </div>
+            <div class="ai-quick-section">
+                <div class="ai-quick-title">Performance</div>
+                <div class="ai-quick-line">
+                    Fastest: ${fastest ? fastest.id + ' ~ ' + fastest.value + ' ms' : '—'}
+                </div>
+                <div class="ai-quick-line">
+                    Slowest: ${slowest ? slowest.id + ' ~ ' + slowest.value + ' ms' : '—'}
+                </div>
+            </div>
+            <div class="ai-quick-section">
+                <div class="ai-quick-title">Reliability</div>
+                <div class="ai-quick-line">
+                    Best error rate: ${bestErr ? bestErr.id + ' ' + (bestErr.rate*100).toFixed(1) + '%' : '—'}
+                </div>
+                <div class="ai-quick-line">
+                    Worst error rate: ${worstErr ? worstErr.id + ' ' + (worstErr.rate*100).toFixed(1) + '%' : '—'}
+                </div>
+            </div>
+            <div class="ai-quick-section">
+                <div class="ai-quick-title">AI Focus</div>
+                <div class="ai-quick-line">${hint}</div>
+                <div class="ai-quick-note">Use this pane as a quick scan; click tiles to drill into a specific microservice.</div>
+            </div>
+        `;
+    }
+
+    // -------- CHART RENDERING --------
+    function renderResponseTimeChartForService(serviceId){
+        const s = serviceState[serviceId];
+        if(!s || !modalRtChart) return;
+
+        const values = s.history.slice(-30);
+        const width = 320;
+        const height = 90;
+        const pad = 8;
+
+        modalRtChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+        if(!values.length){
+            modalRtChart.innerHTML = `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#9ca3af" font-size="11">No history yet</text>`;
+            return;
+        }
+
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+        const step = (width - 2*pad) / Math.max(values.length - 1, 1);
+
+        const points = values.map((v,i)=>{
+            const x = pad + i * step;
+            const norm = (v - min) / range;
+            const y = height - pad - norm * (height - 2*pad);
+            return `${x},${y}`;
+        }).join(' ');
+
+        const baselineY = height - pad;
+
+        modalRtChart.innerHTML = `
+            <line x1="${pad}" y1="${baselineY}" x2="${width-pad}" y2="${baselineY}"
+                  stroke="#e5e7eb" stroke-width="1" />
+            <polyline points="${points}"
+                      fill="none"
+                      stroke="#0f6ebf"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round" />
+            <text x="${pad}" y="${pad+10}" fill="#9ca3af" font-size="10">max ~ ${max} ms</text>
+            <text x="${pad}" y="${height-2}" fill="#9ca3af" font-size="10">min ~ ${min} ms</text>
+            <text x="${width-pad}" y="${height-2}" fill="#9ca3af" font-size="9" text-anchor="end">latest</text>
+        `;
+    }
+
+    // -------- MODAL HANDLING --------
+    function openModalForService(serviceId){
+        currentModalServiceId = serviceId;
+        const s = serviceState[serviceId];
+        if(!s){
+            return;
+        }
+
+        modalServiceName.textContent = s.info.name;
+        modalServiceId.textContent = `${s.info.id} • ${s.info.health}`;
+
+        modalStatus.textContent = (s.lastStatus === 'UP' ? 'Running' :
+                                   s.lastStatus === 'DEGRADED' ? 'Not certain' :
+                                   s.lastStatus === 'DOWN' ? 'Down' :
+                                   s.lastStatus);
+        modalHttpCode.textContent = s.lastHttpCode;
+        modalRtLast.textContent = formatMs(s.lastResponseTime);
+        modalRtAvg.textContent = formatMs(s.avgResponseTime);
+        modalRtP95.textContent = formatMs(s.p95ResponseTime);
+
+        modalCpu.textContent = s.cpu != null ? s.cpu + '%' : '—';
+        modalMem.textContent = s.mem != null ? s.mem + '%' : '—';
+        modalUptime.textContent = formatUptime(s.uptime);
+
+        const total = s.totalRequests || 0;
+        modalTotalReq.textContent = total;
+        modal2xx.textContent = s.count2xx;
+        modal4xx.textContent = s.count4xx;
+        modal5xx.textContent = s.count5xx;
+
+        const errCount = s.count4xx + s.count5xx;
+        const errRate = total ? (errCount / total) : 0;
+        modalErrorRate.textContent = formatPercent(errRate);
+        modalErrorNote.textContent = `Includes 4xx and 5xx over ${total} observed dashboard checks.`;
+
+        const approxReqPerMin = total
+            ? (total * (60000 / REFRESH_INTERVAL) / (total || 1))
+            : 0;
+        modalReqRate.textContent = total ? approxReqPerMin.toFixed(1) + ' / min (approx.)' : '—';
+
+        renderResponseTimeChartForService(serviceId);
+
+        modalOverlay.classList.remove('hidden');
+    }
+
+    function closeModal(){
+        modalOverlay.classList.add('hidden');
+        currentModalServiceId = null;
+    }
+
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e)=>{
+        if(e.target === modalOverlay){
+            closeModal();
+        }
+    });
+    document.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape' && !modalOverlay.classList.contains('hidden')){
+            closeModal();
+        }
+    });
+
+    // modal buttons (existing behaviour)
+    modalBtnLogs.addEventListener('click', ()=>{
+        if(!currentModalServiceId) return;
+        const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=19a6974b-869b-465b-b040-5da5fdab88d6&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
+        window.open(url, '_blank');
+    });
+    modalBtnDeepCheck.addEventListener('click', ()=>{
+        if(!currentModalServiceId) return;
+        const url = 'https://enzymolytic-cristiano-wartier.ngrok-free.dev/?app=Infinity&env=prod';
+        window.open(url, '_blank');
+    });
+    modalBtnJson.addEventListener('click', ()=>{
+        if(!currentModalServiceId) return;
+        const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=a0b68361-3c13-4c9a-b3c5-f9598f059b04&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
+        window.open(url, '_blank');
+    });
+    modalBtnJobMonitoring.addEventListener('click', ()=>{
+        if(!currentModalServiceId) return;
+        const url = 'https://teams.microsoft.com/l/app/f6405520-7907-4464-8f6e-9889e2fb7d8f?source=app-header-share-entrypoint&templateInstanceId=14d0239d-fd42-47a8-842e-9b13597c167b&environment=Default-13085c86-4bcb-460a-a6f0-b373421c6323';
+        window.open(url, '_blank');
+    });
+
+    // -------- START LOOP --------
+    refreshAll();
+    setInterval(refreshAll, REFRESH_INTERVAL);
+</script>
+
+</body>
+</html>

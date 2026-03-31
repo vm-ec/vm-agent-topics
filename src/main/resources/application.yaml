@@ -23,3 +23,6 @@ ai-agent:
 
 dashboard:
   ingest-url: http://localhost:8082/internal/metrics
+#metrics:
+#  storage-url: http://localhost:8082/metrics/store
+
