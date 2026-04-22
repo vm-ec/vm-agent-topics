@@ -1,9 +1,14 @@
 server:
   port: 8086
 
+#spring:
+#  kafka:
+#    bootstrap-servers: 172.31.79.2:9092
+
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ec2-100-52-192-86.compute-1.amazonaws.com:9092
+# bootstrap-servers: 172.31.79.2:9092  # Replace with EC2 private or public IP
     consumer:
       group-id: metrics-group
       auto-offset-reset: earliest
@@ -13,6 +18,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
+
+
+    properties:
+      metadata.max.age.ms: 5000
 kafka:
   topic:
     metrics: ai-metrics
